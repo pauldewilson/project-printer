@@ -61,17 +61,17 @@ gitignore: C:/Dev/project-printer/.gitignore
 
 Directory: C:\Dev\project-printer
 
-project-printer
-    +---.gitignore
-    +---printer.py
-    +---README.md
-    +---requirements.txt
-    +---template.yml
+project-printer<br>
+    +---.gitignore<br>
+    +---printer.py<br>
+    +---README.md<br>
+    +---requirements.txt<br>
+    +---template.yml<br>
 venv
 
 File: C:\Dev\project-printer\printer.py
 
-\`\`\`
+\`\`\`<br>
 import os
 *...rest of printer py file*
 
