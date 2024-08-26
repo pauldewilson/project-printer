@@ -1,0 +1,7 @@
+dirs:
+  - C:\Dev\project-printer
+
+files:
+  - C:\Dev\project-printer\printer.py
+
+gitignore: C:\Dev\project-printer\.gitignore

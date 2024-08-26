@@ -1,0 +1,9 @@
+.git
+.notebook
+
+# Ignore the virtual environment directory
+/venv/
+
+# Ignore all YAML files except for template.yml
+*.yml
+!template.yml
