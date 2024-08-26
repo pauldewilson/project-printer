@@ -1,5 +1,11 @@
 # Project Printer
 
+![Python Version](https://img.shields.io/badge/python-3.12-blue)
+![Project Version](https://img.shields.io/badge/version-0.1-orange)
+![License](https://img.shields.io/badge/license-MIT-brightgreen)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen)
+
 This project provides a Python-based tool designed to display a directory tree and optionally print the contents of specific files. It supports excluding files and directories based on patterns specified in a `.gitignore` file, making it ideal for developers who need to share project structures and contents in a reproducible way, such as in code reviews or with ChatGPT.
 
 ## Features

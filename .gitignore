@@ -1,5 +1,7 @@
 .git
 .notebook
+*cache
+*.pyc
 
 # Ignore the virtual environment directory
 /venv/
