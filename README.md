@@ -63,10 +63,13 @@ Directory: C:\Dev\project-printer
 
 project-printer<br>
     +---.gitignore<br>
+    +---.pylintrc<br>
+    +---LICENSE<br>
     +---printer.py<br>
     +---README.md<br>
     +---requirements.txt<br>
     +---template.yml<br>
+    +---test_printer.py<br>
 venv
 
 File: C:\Dev\project-printer\printer.py
