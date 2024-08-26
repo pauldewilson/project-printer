@@ -9,3 +9,6 @@
 # Ignore all YAML files except for template.yml
 *.yml
 !template.yml
+
+# Ignore all .gitignore files with additional extensions
+*.gitignore.*

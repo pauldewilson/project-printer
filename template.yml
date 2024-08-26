@@ -3,5 +3,7 @@ dirs:
 
 files:
   - C:\Dev\project-printer\printer.py
+  - C:\Dev\project-printer\DOES_NOT_EXIST.py
+  - C:\Dev\project-printer\template.yml
 
 gitignore: C:\Dev\project-printer\.gitignore

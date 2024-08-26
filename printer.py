@@ -11,6 +11,7 @@ COLOR_CODES = {
     'reset': '\033[0m',
     'green': '\033[92m',
     'blue': '\033[94m',
+    'red': '\033[91m',
     'default': ''
 }
 
@@ -101,16 +102,16 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                         print('```')
         else:
             output.write(f"\nDirectory not found: {dir_path}\n")
-            print(f"\nDirectory not found: {dir_path}")
+            print(color_output(f"\nDirectory not found: {dir_path}", 'red'))
 
     # Check for files not found or ignored
     if not dir_only:
-        unfound_files = [f for f in files if f not in printed_files]
+        unfound_files = [f for f in files if os.path.normpath(f) not in printed_files]
         if unfound_files:
             output.write("\nFiles not found or ignored:\n")
             for unfound_file in unfound_files:
                 output.write(f"{unfound_file}\n")
-                print(f"{unfound_file}")
+                print(color_output(f"{unfound_file}", 'red'))
 
     final_output = output.getvalue().strip()
 
