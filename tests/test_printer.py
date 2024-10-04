@@ -93,5 +93,5 @@ def test_get_tree_output(temp_dir_structure):
     # Check if the directory structure is returned correctly
     assert "{}".format(os.path.basename(temp_dir)) in tree_output[0]
     assert "    +---root_file.txt" in tree_output  # Adjusted to match the output format
-    assert "subdir" in tree_output  # Adjusted to match the output format
+    assert "    +---subdir" in tree_output  # Adjusted to match the output format
     assert "+---subdir_file.txt" not in tree_output  # This should be ignored due to .gitignore

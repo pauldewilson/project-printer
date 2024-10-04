@@ -3,6 +3,8 @@ import subprocess
 import yaml
 import argparse
 import pyperclip
+import re
+import sys
 from io import StringIO
 from pathspec import PathSpec
 
@@ -15,9 +17,12 @@ COLOR_CODES = {
     'default': ''
 }
 
-def color_output(output, color):
-    """Wraps the output string in ANSI color codes."""
-    return f"{COLOR_CODES.get(color, '')}{output}{COLOR_CODES['reset']}"
+def color_output(output, color_name):
+    """Wraps the output string in ANSI color codes if output is to a terminal."""
+    if sys.stdout.isatty():
+        return f"{COLOR_CODES.get(color_name, '')}{output}{COLOR_CODES['reset']}"
+    else:
+        return output
 
 def load_gitignore_patterns(gitignore_path):
     """Load gitignore patterns from the specified file."""
@@ -30,21 +35,30 @@ def load_gitignore_patterns(gitignore_path):
         print(f".gitignore file not found at: {gitignore_path}")
         return PathSpec.from_lines('gitwildmatch', [])
 
+def is_excluded(path, spec, is_dir=False):
+    """Check if a path is excluded by the gitignore patterns."""
+    if is_dir and not path.endswith('/'):
+        path += '/'
+    return spec.match_file(path)
+
 def get_tree_output(dir_path, spec):
     """Returns the directory tree as a list, excluding paths matching gitignore patterns."""
     tree = []
     for root, dirs, files in os.walk(dir_path):
-        # Filter directories and files based on gitignore patterns
-        dirs[:] = [d for d in dirs if not spec.match_file(os.path.relpath(os.path.join(root, d), dir_path))]
-        files = [f for f in files if not spec.match_file(os.path.relpath(os.path.join(root, f), dir_path))]
-
-        # Append the current directory
-        level = os.path.relpath(root, dir_path).count(os.sep)
-        indent = '    ' * level
-        if level == 0:
-            tree.append(f"{indent}{os.path.basename(root)}")  # Root directory
+        rel_root = os.path.relpath(root, dir_path)
+        if rel_root == '.':
+            rel_root = ''
+            level = 0
         else:
-            tree.append(f"{indent}+---{os.path.basename(root)}")  # Subdirectories
+            level = rel_root.count(os.sep) + 1  # Adjust level for proper indentation
+
+        indent = '    ' * level
+        # Always use '+---' for subdirectories, including immediate subdirectories
+        tree.append(f"{indent}+---{os.path.basename(root)}")
+
+        # Filter directories and files based on gitignore patterns
+        dirs[:] = [d for d in dirs if not is_excluded(os.path.join(rel_root, d), spec, is_dir=True)]
+        files = [f for f in files if not is_excluded(os.path.join(rel_root, f), spec, is_dir=False)]
 
         # Append files in the current directory
         for file in files:
@@ -59,6 +73,7 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
 
     dirs = config.get('dirs', [])
     files = config.get('files', [])
+    regex_files = config.get('regexfiles', [])
     gitignore_path = config.get('gitignore')
 
     # Load gitignore patterns
@@ -82,36 +97,125 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
             for line in tree_output:
                 print(color_output(line, 'blue'))
 
-            # Skip printing file contents if dir_only is True
-            if not dir_only:
-                for file_path in files:
-                    normalized_file_path = os.path.normpath(file_path)
-                    rel_path = os.path.relpath(normalized_file_path, dir_path)
-
-                    if os.path.exists(normalized_file_path) and not spec.match_file(rel_path) and normalized_file_path not in printed_files:
-                        output.write(f"\nFile: {normalized_file_path}\n")
-                        output.write('```\n')
-                        with open(normalized_file_path, 'r', encoding='utf-8') as f:
-                            output.write(f.read())
-                        output.write('\n```\n')
-                        printed_files.add(normalized_file_path)
-                        print(f"\nFile: {normalized_file_path}")
-                        print('```')
-                        with open(normalized_file_path, 'r', encoding='utf-8') as f:
-                            print(f.read())
-                        print('```')
         else:
             output.write(f"\nDirectory not found: {dir_path}\n")
             print(color_output(f"\nDirectory not found: {dir_path}", 'red'))
 
-    # Check for files not found or ignored
     if not dir_only:
-        unfound_files = [f for f in files if os.path.normpath(f) not in printed_files]
-        if unfound_files:
-            output.write("\nFiles not found or ignored:\n")
-            for unfound_file in unfound_files:
-                output.write(f"{unfound_file}\n")
-                print(color_output(f"{unfound_file}", 'red'))
+        # Process files specified under 'files'
+        for file_path in files:
+            normalized_file_path = os.path.normpath(file_path)
+
+            if os.path.exists(normalized_file_path) and normalized_file_path not in printed_files:
+                # Check if file is excluded by gitignore patterns
+                rel_path = os.path.relpath(normalized_file_path)
+                if not is_excluded(rel_path, spec, is_dir=False):
+                    output.write(f"\nFile: {normalized_file_path}\n")
+                    output.write('```\n')
+                    with open(normalized_file_path, 'r', encoding='utf-8') as f:
+                        output.write(f.read())
+                    output.write('\n```\n')
+                    printed_files.add(normalized_file_path)
+                    print(f"\nFile: {normalized_file_path}")
+                    print('```\n')
+                    with open(normalized_file_path, 'r', encoding='utf-8') as f:
+                        print(f.read())
+                    print('\n```\n')
+                else:
+                    output.write(f"\nFile excluded by gitignore: {normalized_file_path}\n")
+                    print(color_output(f"\nFile excluded by gitignore: {normalized_file_path}", 'red'))
+            else:
+                output.write(f"\nFile not found or already printed: {normalized_file_path}\n")
+                print(color_output(f"\nFile not found or already printed: {normalized_file_path}", 'red'))
+
+        # Process regex files
+        for regex_entry in regex_files:
+            base_dir = regex_entry.get('dir')
+            pattern = regex_entry.get('pattern')
+            subdirs = regex_entry.get('subdirs', True)  # Default to True
+
+            if not base_dir or not pattern:
+                continue  # Skip invalid entries
+
+            base_dir = os.path.normpath(base_dir)
+            if not os.path.exists(base_dir):
+                output.write(f"\nBase directory not found: {base_dir}\n")
+                print(color_output(f"\nBase directory not found: {base_dir}", 'red'))
+                continue
+
+            # Compile the regex pattern
+            try:
+                regex_compiled = re.compile(pattern)
+            except re.error as e:
+                output.write(f"\nInvalid regex pattern '{pattern}': {e}\n")
+                print(color_output(f"\nInvalid regex pattern '{pattern}': {e}", 'red'))
+                continue
+
+            if subdirs:
+                # Walk through the base directory and find matching files
+                for root, dirs, files_in_dir in os.walk(base_dir):
+                    rel_root = os.path.relpath(root, base_dir)
+                    if rel_root == '.':
+                        rel_root = ''
+
+                    # Filter directories based on gitignore patterns
+                    dirs[:] = [d for d in dirs if not is_excluded(os.path.join(rel_root, d), spec, is_dir=True)]
+
+                    for file_name in files_in_dir:
+                        file_path = os.path.join(root, file_name)
+                        rel_path = os.path.relpath(file_path, base_dir)
+
+                        if is_excluded(rel_path, spec, is_dir=False):
+                            continue  # Exclude files matching gitignore patterns
+
+                        if file_path in printed_files:
+                            continue  # Skip files already printed
+
+                        if regex_compiled.search(file_name):
+                            # Print the file content
+                            output.write(f"\nFile: {file_path}\n")
+                            output.write('```\n')
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                output.write(f.read())
+                            output.write('\n```\n')
+                            printed_files.add(file_path)
+                            print(f"\nFile: {file_path}")
+                            print('```\n')
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                print(f.read())
+                            print('\n```\n')
+            else:
+                # Only process the specified directory
+                try:
+                    files_in_dir = [f for f in os.listdir(base_dir) if os.path.isfile(os.path.join(base_dir, f))]
+                except Exception as e:
+                    output.write(f"\nError accessing directory '{base_dir}': {e}\n")
+                    print(color_output(f"\nError accessing directory '{base_dir}': {e}", 'red'))
+                    continue
+
+                for file_name in files_in_dir:
+                    file_path = os.path.join(base_dir, file_name)
+                    rel_path = os.path.relpath(file_path, base_dir)
+
+                    if is_excluded(rel_path, spec, is_dir=False):
+                        continue  # Exclude files matching gitignore patterns
+
+                    if file_path in printed_files:
+                        continue  # Skip files already printed
+
+                    if regex_compiled.search(file_name):
+                        # Print the file content
+                        output.write(f"\nFile: {file_path}\n")
+                        output.write('```\n')
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            output.write(f.read())
+                        output.write('\n```\n')
+                        printed_files.add(file_path)
+                        print(f"\nFile: {file_path}")
+                        print('```\n')
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            print(f.read())
+                        print('\n```\n')
 
     final_output = output.getvalue().strip()
 

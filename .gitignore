@@ -12,3 +12,4 @@
 
 # Ignore all .gitignore files with additional extensions
 *.gitignore.*
+*__pycache__*
