@@ -1,7 +1,7 @@
 # Project Printer
 
 ![Python Version](https://img.shields.io/badge/python-3.12-blue)
-![Project Version](https://img.shields.io/badge/version-0.2-orange)
+![Project Version](https://img.shields.io/badge/version-0.2.1-orange)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen)
@@ -119,6 +119,11 @@ Output has been copied to the clipboard.
 ## Change Log
 
 All notable changes to this project will be documented in this section.
+
+### [0.2.1] - 2024-10-04
+
+#### Changed
+- Files and directories that are not found are always printed last, in red
 
 ### [0.2] - 2024-10-04
 

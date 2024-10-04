@@ -71,6 +71,9 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
     with open(config_file, 'r') as file:
         config = yaml.safe_load(file)
 
+    # Add a list to store not found directories and files
+    not_found = []
+
     dirs = config.get('dirs', [])
     files = config.get('files', [])
     regex_files = config.get('regexfiles', [])
@@ -98,8 +101,8 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                 print(color_output(line, 'blue'))
 
         else:
+            not_found.append(f"Directory not found: {dir_path}")
             output.write(f"\nDirectory not found: {dir_path}\n")
-            print(color_output(f"\nDirectory not found: {dir_path}", 'red'))
 
     if not dir_only:
         # Process files specified under 'files'
@@ -122,11 +125,11 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                         print(f.read())
                     print('\n```\n')
                 else:
+                    not_found.append(f"File excluded by gitignore: {normalized_file_path}")
                     output.write(f"\nFile excluded by gitignore: {normalized_file_path}\n")
-                    print(color_output(f"\nFile excluded by gitignore: {normalized_file_path}", 'red'))
             else:
-                output.write(f"\nFile not found or already printed: {normalized_file_path}\n")
-                print(color_output(f"\nFile not found or already printed: {normalized_file_path}", 'red'))
+                not_found.append(f"File not found: {normalized_file_path}")
+                output.write(f"\nFile not found: {normalized_file_path}\n")
 
         # Process regex files
         for regex_entry in regex_files:
@@ -139,16 +142,16 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
 
             base_dir = os.path.normpath(base_dir)
             if not os.path.exists(base_dir):
+                not_found.append(f"Base directory not found: {base_dir}")
                 output.write(f"\nBase directory not found: {base_dir}\n")
-                print(color_output(f"\nBase directory not found: {base_dir}", 'red'))
                 continue
 
             # Compile the regex pattern
             try:
                 regex_compiled = re.compile(pattern)
             except re.error as e:
+                not_found.append(f"Invalid regex pattern '{pattern}': {e}")
                 output.write(f"\nInvalid regex pattern '{pattern}': {e}\n")
-                print(color_output(f"\nInvalid regex pattern '{pattern}': {e}", 'red'))
                 continue
 
             if subdirs:
@@ -189,8 +192,8 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                 try:
                     files_in_dir = [f for f in os.listdir(base_dir) if os.path.isfile(os.path.join(base_dir, f))]
                 except Exception as e:
+                    not_found.append(f"Error accessing directory '{base_dir}': {e}")
                     output.write(f"\nError accessing directory '{base_dir}': {e}\n")
-                    print(color_output(f"\nError accessing directory '{base_dir}': {e}", 'red'))
                     continue
 
                 for file_name in files_in_dir:
@@ -216,6 +219,12 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                         with open(file_path, 'r', encoding='utf-8') as f:
                             print(f.read())
                         print('\n```\n')
+
+    # At the end of the function, print all not found messages in red
+    if not_found:
+        print(color_output("\nFiles or directories not found:", 'red'))
+        for nf in not_found:
+            print(color_output(nf, 'red'))
 
     final_output = output.getvalue().strip()
 

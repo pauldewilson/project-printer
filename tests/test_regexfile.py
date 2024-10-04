@@ -233,6 +233,8 @@ def test_regexfiles_no_dir_or_pattern(temp_dir_structure, monkeypatch):
     # The entry should be skipped without errors
     assert "Base directory not found" not in output_value
     assert "Invalid regex pattern" not in output_value
+    assert "Directory: {}".format(temp_dir) in output_value
+    assert "File: {}".format(file_paths["root_file.txt"]) in output_value
 
 def test_regexfiles_gitignore_exclusion(temp_dir_structure, monkeypatch):
     temp_dir, file_paths = temp_dir_structure
