@@ -120,6 +120,11 @@ Output has been copied to the clipboard.
 
 All notable changes to this project will be documented in this section.
 
+### [0.2.2] - 2024-11-28
+
+#### Added
+- ```--nodirtree``` argument added which, when provided, will not print or copy the blue directory tree structure
+
 ### [0.2.1] - 2024-10-04
 
 #### Changed

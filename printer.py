@@ -66,7 +66,7 @@ def get_tree_output(dir_path, spec):
             tree.append(f"{file_indent}+---{file}")
     return tree
 
-def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False):
+def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False, no_dirtree=False):
     # Load the YAML configuration
     with open(config_file, 'r') as file:
         config = yaml.safe_load(file)
@@ -85,24 +85,28 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
     output = StringIO()
     printed_files = set()
 
-    for dir_path in dirs:
-        dir_path = os.path.normpath(dir_path)
 
-        if os.path.exists(dir_path):
-            tree_output = get_tree_output(dir_path, spec)
-            # Generate non-colored output for clipboard
-            output.write(f"\nDirectory: {dir_path}\n")
-            for line in tree_output:
-                output.write(line + "\n")
+    if no_dirtree:
+        pass
+    else:
+        for dir_path in dirs:
+            dir_path = os.path.normpath(dir_path)
 
-            # Print colored output to terminal
-            print(color_output(f"\nDirectory: {dir_path}\n", 'blue'))
-            for line in tree_output:
-                print(color_output(line, 'blue'))
+            if os.path.exists(dir_path):
+                tree_output = get_tree_output(dir_path, spec)
+                # Generate non-colored output for clipboard
+                output.write(f"\nDirectory: {dir_path}\n")
+                for line in tree_output:
+                    output.write(line + "\n")
 
-        else:
-            not_found.append(f"Directory not found: {dir_path}")
-            output.write(f"\nDirectory not found: {dir_path}\n")
+                # Print colored output to terminal
+                print(color_output(f"\nDirectory: {dir_path}\n", 'blue'))
+                for line in tree_output:
+                    print(color_output(line, 'blue'))
+
+            else:
+                not_found.append(f"Directory not found: {dir_path}")
+                output.write(f"\nDirectory not found: {dir_path}\n")
 
     if not dir_only:
         # Process files specified under 'files'
@@ -237,6 +241,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="proj.yml", help="Path to the YAML configuration file.")
     parser.add_argument("--clipboard", action="store_true", help="Copy output to clipboard.")
     parser.add_argument("--dironly", action="store_true", help="Print only the directory structure, no file contents.")
+    parser.add_argument("--nodirtree", action="store_true", help="Do not print directory structure.")
     args = parser.parse_args()
 
-    print_tree_and_file_contents(args.config, to_clipboard=args.clipboard, dir_only=args.dironly)
+    print_tree_and_file_contents(args.config, to_clipboard=args.clipboard, dir_only=args.dironly, no_dirtree=args.nodirtree)
