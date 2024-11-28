@@ -1,5 +1,4 @@
 import os
-import subprocess
 import yaml
 import argparse
 import pyperclip
@@ -119,14 +118,18 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                 if not is_excluded(rel_path, spec, is_dir=False):
                     output.write(f"\nFile: {normalized_file_path}\n")
                     output.write('```\n')
-                    with open(normalized_file_path, 'r', encoding='utf-8') as f:
-                        output.write(f.read())
+                    try:
+                        with open(normalized_file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                    except UnicodeDecodeError:
+                        with open(normalized_file_path, 'r', encoding='latin-1') as f:
+                            content = f.read()
+                    output.write(content)
                     output.write('\n```\n')
                     printed_files.add(normalized_file_path)
                     print(f"\nFile: {normalized_file_path}")
                     print('```\n')
-                    with open(normalized_file_path, 'r', encoding='utf-8') as f:
-                        print(f.read())
+                    print(content)
                     print('\n```\n')
                 else:
                     not_found.append(f"File excluded by gitignore: {normalized_file_path}")
@@ -179,17 +182,23 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                             continue  # Skip files already printed
 
                         if regex_compiled.search(file_name):
-                            # Print the file content
+                            # Read the file content
+                            try:
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                            except UnicodeDecodeError:
+                                with open(file_path, 'r', encoding='latin-1') as f:
+                                    content = f.read()
+                            # Write to output buffer
                             output.write(f"\nFile: {file_path}\n")
                             output.write('```\n')
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                output.write(f.read())
+                            output.write(content)
                             output.write('\n```\n')
                             printed_files.add(file_path)
+                            # Print to terminal
                             print(f"\nFile: {file_path}")
                             print('```\n')
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                print(f.read())
+                            print(content)
                             print('\n```\n')
             else:
                 # Only process the specified directory
@@ -211,17 +220,23 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                         continue  # Skip files already printed
 
                     if regex_compiled.search(file_name):
-                        # Print the file content
+                        # Read the file content
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        except UnicodeDecodeError:
+                            with open(file_path, 'r', encoding='latin-1') as f:
+                                content = f.read()
+                        # Write to output buffer
                         output.write(f"\nFile: {file_path}\n")
                         output.write('```\n')
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            output.write(f.read())
+                        output.write(content)
                         output.write('\n```\n')
                         printed_files.add(file_path)
+                        # Print to terminal
                         print(f"\nFile: {file_path}")
                         print('```\n')
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            print(f.read())
+                        print(content)
                         print('\n```\n')
 
     # At the end of the function, print all not found messages in red
