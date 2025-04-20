@@ -4,6 +4,7 @@ import argparse
 import pyperclip
 import re
 import sys
+import json
 from io import StringIO
 from pathspec import PathSpec
 
@@ -65,6 +66,36 @@ def get_tree_output(dir_path, spec):
             tree.append(f"{file_indent}+---{file}")
     return tree
 
+def convert_ipynb_to_py_content(ipynb_path):
+    """Converts an ipynb file to python code and returns the content as a string."""
+    try:
+        with open(ipynb_path, 'r', encoding='utf-8') as f:
+            notebook = json.load(f)
+
+        output = StringIO()
+        output.write(f"# Generated from {ipynb_path}\n\n")
+
+        # Extract and write all code cells
+        for cell in notebook['cells']:
+            if cell['cell_type'] == 'code':
+                # Get the source code lines
+                source = cell.get('source', [])
+                if isinstance(source, list):
+                    code = ''.join(source)
+                else:
+                    code = source
+
+                # Skip empty cells
+                if not code.strip():
+                    continue
+
+                # Write the code with a separator for readability
+                output.write(f"{code}\n\n")
+
+        return output.getvalue()
+    except Exception as e:
+        return f"Error converting notebook: {str(e)}"
+
 def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False, no_dirtree=False):
     # Load the YAML configuration
     with open(config_file, 'r') as file:
@@ -118,12 +149,18 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                 if not is_excluded(rel_path, spec, is_dir=False):
                     output.write(f"\nFile: {normalized_file_path}\n")
                     output.write('```\n')
-                    try:
-                        with open(normalized_file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                    except UnicodeDecodeError:
-                        with open(normalized_file_path, 'r', encoding='latin-1') as f:
-                            content = f.read()
+
+                    # Check if the file is a Jupyter notebook
+                    if normalized_file_path.endswith('.ipynb'):
+                        content = convert_ipynb_to_py_content(normalized_file_path)
+                    else:
+                        try:
+                            with open(normalized_file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        except UnicodeDecodeError:
+                            with open(normalized_file_path, 'r', encoding='latin-1') as f:
+                                content = f.read()
+
                     output.write(content)
                     output.write('\n```\n')
                     printed_files.add(normalized_file_path)
@@ -182,13 +219,18 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                             continue  # Skip files already printed
 
                         if regex_compiled.search(file_name):
-                            # Read the file content
-                            try:
-                                with open(file_path, 'r', encoding='utf-8') as f:
-                                    content = f.read()
-                            except UnicodeDecodeError:
-                                with open(file_path, 'r', encoding='latin-1') as f:
-                                    content = f.read()
+                            # Process the file content
+                            if file_path.endswith('.ipynb'):
+                                content = convert_ipynb_to_py_content(file_path)
+                            else:
+                                # Read the file content
+                                try:
+                                    with open(file_path, 'r', encoding='utf-8') as f:
+                                        content = f.read()
+                                except UnicodeDecodeError:
+                                    with open(file_path, 'r', encoding='latin-1') as f:
+                                        content = f.read()
+
                             # Write to output buffer
                             output.write(f"\nFile: {file_path}\n")
                             output.write('```\n')
@@ -220,13 +262,18 @@ def print_tree_and_file_contents(config_file, to_clipboard=False, dir_only=False
                         continue  # Skip files already printed
 
                     if regex_compiled.search(file_name):
-                        # Read the file content
-                        try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                        except UnicodeDecodeError:
-                            with open(file_path, 'r', encoding='latin-1') as f:
-                                content = f.read()
+                        # Process the file content
+                        if file_path.endswith('.ipynb'):
+                            content = convert_ipynb_to_py_content(file_path)
+                        else:
+                            # Read the file content
+                            try:
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                            except UnicodeDecodeError:
+                                with open(file_path, 'r', encoding='latin-1') as f:
+                                    content = f.read()
+
                         # Write to output buffer
                         output.write(f"\nFile: {file_path}\n")
                         output.write('```\n')
